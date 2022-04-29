@@ -1,5 +1,7 @@
 ## STEPS 
 
+- Prerequisites: run mvn clean package in every project clone. 
+
 ```bash
 git clone https://github.com/Miranda13/final-project-eb.git
 cd final-project-eb
