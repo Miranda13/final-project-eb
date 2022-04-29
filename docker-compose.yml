@@ -1,0 +1,110 @@
+version: '3' # Version del docker-compose
+
+networks:
+  backend:
+
+services:
+# Microservicio de Gateway  
+  gateway-service:
+    build: gateway/
+    restart: on-failure
+    depends_on:
+      - eureka-server
+      - catalog-service
+    ports:
+      - "8085:8085"
+    networks:
+      - backend
+
+# Microservicio Catalog
+  catalog-service:
+    build: catalog-service/
+    restart: on-failure
+    depends_on:
+      - movie-service
+      - serie-service
+    networks:
+      - backend
+    ports:
+      - "8090:8090"
+# Microservicio Movies
+  movie-service:
+    build: movie-service/
+    restart: on-failure
+    depends_on:
+      - mongodb
+      - eureka
+    networks:
+      - backend
+    ports:
+      - "8082:8082"
+
+  # Microservicio Serie
+  serie-service:
+    build: serie-service/
+    restart: on-failure
+    depends_on:
+      - mongodb
+      - eureka
+    networks:
+      - backend
+    ports:
+      - "8081:8081"
+
+  # Eureka server
+  eureka-server:
+    build: eureka-server/
+    restart: always
+    ports:
+      - "8761:8761"
+    depends_on:
+      - config-server
+    networks:
+      - backend
+
+  # Config Server
+  config-server:
+    build: config-server/
+    restart: on-failure
+    ports:
+      - "8888:8888"
+    # healthcheck:
+    #   test: "curl -f http://localhost:8888/ || exit 1"
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    networks:
+      - backend
+  # Microservicio de Trazas
+  zipkin:
+    image: openzipkin/zipkin
+    restart: on-failure
+    ports:
+     - "9411:9411"
+    networks:
+      - backend
+    depends_on:
+      - rabbit-mq
+  # Base de datos MongoDB
+  mongodb:
+    image: mongo:4.4.2
+    restart: on-failure
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./configInit/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - backend
+  # Microservicio de Mensajeria
+  rabbit-mq:
+    image: rabbitmq:3.8.14-management
+    restart: on-failure
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./configInit/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./configInit/definitions.json:/etc/rabbitmq/definitions.json:ro
+    networks:
+      - backend
+  
